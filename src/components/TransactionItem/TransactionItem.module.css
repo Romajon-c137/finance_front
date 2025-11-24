@@ -1,0 +1,29 @@
+.item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 12px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.date {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.amount {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.time {
+    font-size: 0.9rem;
+    color: #6b7280;
+}

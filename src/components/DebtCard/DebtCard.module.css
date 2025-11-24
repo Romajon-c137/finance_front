@@ -1,0 +1,84 @@
+.card {
+    background-color: #ffffff;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    width: 100%;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Push items to edges */
+    width: 100%;
+}
+
+.avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6ee7b7 0%, #67e8f9 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    order: 2;
+    /* Move to the right visually if flex container is row */
+}
+
+.info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    order: 1;
+    /* Move to the left */
+}
+
+.name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #1f2937;
+}
+
+.amount {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #374151;
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.button {
+    flex: 1;
+    padding: 8px 0;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: white;
+    text-transform: uppercase;
+    transition: opacity 0.2s;
+}
+
+.button:active {
+    opacity: 0.8;
+}
+
+.take {
+    background-color: #6ee7b7;
+    /* Light green/teal */
+}
+
+.give {
+    background-color: #67e8f9;
+    /* Light blue */
+}
