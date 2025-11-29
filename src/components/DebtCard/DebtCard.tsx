@@ -7,9 +7,18 @@ interface DebtCardProps {
     amount: number;
     currency?: string;
     showActions?: boolean;
+    onAccept?: () => void;
+    onGive?: () => void;
 }
 
-const DebtCard: React.FC<DebtCardProps> = ({ name, amount, currency = 'с', showActions = true }) => {
+const DebtCard: React.FC<DebtCardProps> = ({
+    name,
+    amount,
+    currency = 'с',
+    showActions = true,
+    onAccept,
+    onGive
+}) => {
     // Format amount with spaces (e.g., -157 500)
     const formattedAmount = amount.toLocaleString('ru-RU').replace(',', '.');
 
@@ -26,8 +35,26 @@ const DebtCard: React.FC<DebtCardProps> = ({ name, amount, currency = 'с', show
             </div>
             {showActions && (
                 <div className={styles.actions}>
-                    <button className={`${styles.button} ${styles.take}`}>Принять +</button>
-                    <button className={`${styles.button} ${styles.give}`}>Отдать -</button>
+                    <button
+                        className={`${styles.button} ${styles.take}`}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onAccept?.();
+                        }}
+                    >
+                        Принять +
+                    </button>
+                    <button
+                        className={`${styles.button} ${styles.give}`}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onGive?.();
+                        }}
+                    >
+                        Отдать -
+                    </button>
                 </div>
             )}
         </div>

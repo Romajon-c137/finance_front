@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   description: "Finance tracker application",
 };
 
+import MiniProfile from "@/components/MiniProfile/MiniProfile";
+
+// ...
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className={montserrat.className}>
+        <MiniProfile />
         {children}
       </body>
     </html>

@@ -1,0 +1,33 @@
+.actionContainer {
+    position: fixed;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+    padding: 0 16px;
+    display: flex;
+    justify-content: center;
+    z-index: 10;
+}
+
+.plusButton {
+    width: 100%;
+    max-width: 400px;
+    padding: 16px;
+    border-radius: 16px;
+    border: none;
+    background-color: #6ee7b7;
+    /* Match the 'take' button color or similar */
+    color: white;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(110, 231, 183, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.plusButton:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 6px rgba(110, 231, 183, 0.4);
+}

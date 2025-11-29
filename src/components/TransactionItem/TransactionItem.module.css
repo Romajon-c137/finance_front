@@ -1,29 +1,48 @@
 .item {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
+    flex-direction: column;
+    gap: 8px;
     padding: 12px 0;
     border-bottom: 1px solid #f3f4f6;
 }
 
-.left {
+.row {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
 }
 
-.date {
-    font-size: 0.9rem;
-    color: #6b7280;
+.name {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: #474A4B;
 }
 
 .amount {
-    font-size: 1.1rem;
+    font-family: 'Montserrat', sans-serif;
     font-weight: 700;
-    color: #1f2937;
+    font-size: 24px;
+    color: #000000;
+}
+
+.datetime {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.date {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: #474A4B;
 }
 
 .time {
-    font-size: 0.9rem;
-    color: #6b7280;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    color: #9ca3af;
 }

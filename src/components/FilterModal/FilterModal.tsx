@@ -1,32 +1,30 @@
-'use client';
-
+"use client";
 import React, { useState } from 'react';
-import { format } from 'date-fns';
 import styles from './FilterModal.module.css';
 
-export type FilterPeriod = 'this-month' | 'last-month' | 'all-time' | 'custom';
+export type FilterPeriod = 'this_month' | 'last_month' | 'all_time' | 'custom';
 
 interface FilterModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onApply: (period: FilterPeriod, customRange?: { start: Date; end: Date }) => void;
-    currentPeriod: FilterPeriod;
+    activeFilter: FilterPeriod;
+    onApply: (filter: FilterPeriod, customStart?: Date, customEnd?: Date) => void;
 }
 
-const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApply, currentPeriod }) => {
-    const [selectedPeriod, setSelectedPeriod] = useState<FilterPeriod>(currentPeriod);
+const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, activeFilter, onApply }) => {
+    const [selectedFilter, setSelectedFilter] = useState<FilterPeriod>(activeFilter);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
     if (!isOpen) return null;
 
     const handleApply = () => {
-        if (selectedPeriod === 'custom') {
+        if (selectedFilter === 'custom') {
             if (startDate && endDate) {
-                onApply('custom', { start: new Date(startDate), end: new Date(endDate) });
+                onApply(selectedFilter, new Date(startDate), new Date(endDate));
             }
         } else {
-            onApply(selectedPeriod);
+            onApply(selectedFilter);
         }
         onClose();
     };
@@ -36,47 +34,48 @@ const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApply, cur
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <h3 className={styles.title}>Фильтр</h3>
 
-                <button
-                    className={`${styles.option} ${selectedPeriod === 'this-month' ? styles.active : ''}`}
-                    onClick={() => setSelectedPeriod('this-month')}
-                >
-                    Этот месяц
-                </button>
+                <div className={styles.options}>
+                    <button
+                        className={`${styles.optionButton} ${selectedFilter === 'this_month' ? styles.active : ''}`}
+                        onClick={() => setSelectedFilter('this_month')}
+                    >
+                        Этот месяц
+                    </button>
+                    <button
+                        className={`${styles.optionButton} ${selectedFilter === 'last_month' ? styles.active : ''}`}
+                        onClick={() => setSelectedFilter('last_month')}
+                    >
+                        Прошлый месяц
+                    </button>
+                    <button
+                        className={`${styles.optionButton} ${selectedFilter === 'all_time' ? styles.active : ''}`}
+                        onClick={() => setSelectedFilter('all_time')}
+                    >
+                        За все время
+                    </button>
+                    <button
+                        className={`${styles.optionButton} ${selectedFilter === 'custom' ? styles.active : ''}`}
+                        onClick={() => setSelectedFilter('custom')}
+                    >
+                        Выбрать период
+                    </button>
+                </div>
 
-                <button
-                    className={`${styles.option} ${selectedPeriod === 'last-month' ? styles.active : ''}`}
-                    onClick={() => setSelectedPeriod('last-month')}
-                >
-                    Прошлый месяц
-                </button>
-
-                <button
-                    className={`${styles.option} ${selectedPeriod === 'all-time' ? styles.active : ''}`}
-                    onClick={() => setSelectedPeriod('all-time')}
-                >
-                    За всё время
-                </button>
-
-                <button
-                    className={`${styles.option} ${selectedPeriod === 'custom' ? styles.active : ''}`}
-                    onClick={() => setSelectedPeriod('custom')}
-                >
-                    Выбрать период
-                </button>
-
-                {selectedPeriod === 'custom' && (
-                    <div className={styles.customPeriod}>
+                {selectedFilter === 'custom' && (
+                    <div className={styles.customDateContainer}>
                         <input
                             type="date"
                             className={styles.dateInput}
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
+                            placeholder="От"
                         />
                         <input
                             type="date"
                             className={styles.dateInput}
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
+                            placeholder="До"
                         />
                     </div>
                 )}

@@ -6,9 +6,10 @@ interface SalaryCardProps {
     name: string;
     amount: number;
     currency?: string;
+    onAdd?: () => void;
 }
 
-const SalaryCard: React.FC<SalaryCardProps> = ({ name, amount, currency = '' }) => {
+const SalaryCard: React.FC<SalaryCardProps> = ({ name, amount, currency = '', onAdd }) => {
     // Format amount with spaces (e.g., 5 000)
     const formattedAmount = amount.toLocaleString('ru-RU').replace(',', '.');
 
@@ -23,7 +24,14 @@ const SalaryCard: React.FC<SalaryCardProps> = ({ name, amount, currency = '' }) 
                     <span className={styles.amount}>{formattedAmount} {currency}</span>
                 </div>
             </div>
-            <button className={styles.addButton}>
+            <button
+                className={styles.addButton}
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onAdd?.();
+                }}
+            >
                 <Plus size={24} strokeWidth={2.5} />
             </button>
         </div>

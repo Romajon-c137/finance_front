@@ -21,15 +21,17 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onFilterClick }) => {
                 />
             </div>
 
-            <button className={styles.button} onClick={onFilterClick}>
-                <Image
-                    src="/iconoir_filter.svg"
-                    alt="Filter"
-                    width={24}
-                    height={24}
-                    className={styles.icon}
-                />
-            </button>
+            {onFilterClick && (
+                <button className={styles.button} onClick={onFilterClick}>
+                    <Image
+                        src="/iconoir_filter.svg"
+                        alt="Filter"
+                        width={24}
+                        height={24}
+                        className={styles.icon}
+                    />
+                </button>
+            )}
         </div>
     );
 };

@@ -5,7 +5,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 7.5px rgba(0, 0, 0, 0.25);
     width: 100%;
 }
 
@@ -13,13 +13,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    /* Push items to edges */
     width: 100%;
 }
 
 .avatar {
-    width: 60px;
-    height: 60px;
+    width: 85px;
+    height: 85px;
     border-radius: 50%;
     background: linear-gradient(135deg, #6ee7b7 0%, #67e8f9 100%);
     display: flex;
@@ -27,7 +26,6 @@
     justify-content: center;
     color: white;
     order: 2;
-    /* Move to the right visually if flex container is row */
 }
 
 .info {
@@ -35,19 +33,20 @@
     flex-direction: column;
     gap: 4px;
     order: 1;
-    /* Move to the left */
 }
 
 .name {
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: #1f2937;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 24px;
+    color: #333C40;
 }
 
 .amount {
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: #374151;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 24px;
+    color: #3C464A;
 }
 
 .actions {

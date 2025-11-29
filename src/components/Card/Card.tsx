@@ -18,6 +18,9 @@ const Card: React.FC<CardProps> = ({ title, variant, iconSrc }) => {
           width={120}
           height={120}
           className={styles.icon}
+          style={{
+            zIndex: 1,
+          }}
         />
       </div>
       <span className={styles.title}>{title}</span>
