@@ -43,7 +43,8 @@ export interface LoginResponse {
 
 export async function login(username: string, password: string): Promise<LoginResponse | null> {
     try {
-        const res = await fetch(`${API_BASE_URL}/auth/login/`, {
+        // Use local API route to avoid CORS issues
+        const res = await fetch('/api/auth/login', {
             method: 'POST',
             headers: {
                 'accept': 'application/json',
@@ -53,7 +54,8 @@ export async function login(username: string, password: string): Promise<LoginRe
         });
 
         if (!res.ok) {
-            console.error('Login failed:', res.statusText);
+            const errorData = await res.json().catch(() => ({}));
+            console.error('Login failed:', res.statusText, errorData);
             return null;
         }
 
