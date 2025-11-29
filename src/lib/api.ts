@@ -67,20 +67,9 @@ export async function login(username: string, password: string): Promise<LoginRe
     }
 }
 
-// Helper to get headers - works in both client and server
+// Helper to get headers - now simplified since server handles auth
 const getHeaders = async () => {
-    let token: string | null = null;
-
-    // Try server-side first
-    if (typeof window === 'undefined') {
-        token = await getTokenServer();
-    } else {
-        // Client-side
-        token = getTokenClient();
-    }
-
     return {
-        'Authorization': token ? `Token ${token}` : '',
         'Content-Type': 'application/json',
     };
 };
@@ -104,7 +93,7 @@ export interface Finance {
 
 export async function getFinances(): Promise<Finance[]> {
     try {
-        const res = await fetch(`${API_BASE_URL}/finances/`, {
+        const res = await fetch('/api/finances', {
             headers: await getHeaders(),
             cache: 'no-store',
         });
@@ -123,7 +112,7 @@ export async function getFinances(): Promise<Finance[]> {
 
 export async function getPersonTransactions(id: string): Promise<Finance[]> {
     try {
-        const res = await fetch(`${API_BASE_URL}/persons/${id}/transactions/`, {
+        const res = await fetch(`/api/persons/${id}/transactions`, {
             headers: await getHeaders(),
             cache: 'no-store',
         });
@@ -177,7 +166,7 @@ export async function getSalaryPerson(id: string): Promise<Debt | null> {
 
 export async function getPersons(type: 'finance' | 'consumption' | 'salary'): Promise<Debt[]> {
     try {
-        const res = await fetch(`${API_BASE_URL}/persons/${type}/`, {
+        const res = await fetch(`/api/persons/${type}`, {
             headers: await getHeaders(),
             cache: 'no-store',
         });
@@ -204,7 +193,7 @@ export interface CreatePersonPayload {
 
 export async function createPerson(payload: CreatePersonPayload): Promise<boolean> {
     try {
-        const res = await fetch(`${API_BASE_URL}/persons/`, {
+        const res = await fetch('/api/persons', {
             method: 'POST',
             headers: await getHeaders(),
             body: JSON.stringify(payload),
@@ -233,7 +222,7 @@ export interface CreateFinancePayload {
 
 export async function createFinance(payload: CreateFinancePayload): Promise<boolean> {
     try {
-        const res = await fetch(`${API_BASE_URL}/finances/`, {
+        const res = await fetch('/api/finances', {
             method: 'POST',
             headers: await getHeaders(),
             body: JSON.stringify(payload),
@@ -259,7 +248,7 @@ export interface CreateConsumptionPayload {
 
 export async function createConsumption(payload: CreateConsumptionPayload): Promise<boolean> {
     try {
-        const res = await fetch(`${API_BASE_URL}/consumptions/`, {
+        const res = await fetch('/api/consumptions', {
             method: 'POST',
             headers: await getHeaders(),
             body: JSON.stringify(payload),
@@ -287,7 +276,7 @@ export interface CreateSalaryPayload {
 
 export async function createSalary(payload: CreateSalaryPayload): Promise<boolean> {
     try {
-        const res = await fetch(`${API_BASE_URL}/salaries/`, {
+        const res = await fetch('/api/salaries', {
             method: 'POST',
             headers: await getHeaders(),
             body: JSON.stringify(payload),
@@ -308,7 +297,7 @@ export async function createSalary(payload: CreateSalaryPayload): Promise<boolea
 
 export async function getConsumptions(): Promise<Finance[]> {
     try {
-        const res = await fetch(`${API_BASE_URL}/consumptions/`, {
+        const res = await fetch('/api/consumptions', {
             headers: await getHeaders(),
             cache: 'no-store',
         });
@@ -327,7 +316,7 @@ export async function getConsumptions(): Promise<Finance[]> {
 
 export async function getSalaries(): Promise<Finance[]> {
     try {
-        const res = await fetch(`${API_BASE_URL}/salaries/`, {
+        const res = await fetch('/api/salaries', {
             headers: await getHeaders(),
             cache: 'no-store',
         });
