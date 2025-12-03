@@ -43,8 +43,7 @@ export interface LoginResponse {
 
 export async function login(username: string, password: string): Promise<LoginResponse | null> {
     try {
-        // Use local API route to avoid CORS issues
-        const res = await fetch('/api/auth/login', {
+        const res = await fetch(`${API_BASE_URL}/auth/login/`, {
             method: 'POST',
             headers: {
                 'accept': 'application/json',
@@ -54,8 +53,7 @@ export async function login(username: string, password: string): Promise<LoginRe
         });
 
         if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
-            console.error('Login failed:', res.statusText, errorData);
+            console.error('Login failed:', res.statusText);
             return null;
         }
 
@@ -67,19 +65,20 @@ export async function login(username: string, password: string): Promise<LoginRe
     }
 }
 
-// Helper to build API URL - works in both server and client
-const getApiUrl = (path: string): string => {
-    // Server-side: use localhost
-    if (typeof window === 'undefined') {
-        return `http://localhost:3000${path}`;
-    }
-    // Client-side: use relative path
-    return path;
-};
-
-// Helper to get headers - now simplified since server handles auth
+// Helper to get headers - works in both client and server
 const getHeaders = async () => {
+    let token: string | null = null;
+
+    // Try server-side first
+    if (typeof window === 'undefined') {
+        token = await getTokenServer();
+    } else {
+        // Client-side
+        token = getTokenClient();
+    }
+
     return {
+        'Authorization': token ? `Token ${token}` : '',
         'Content-Type': 'application/json',
     };
 };
@@ -103,7 +102,7 @@ export interface Finance {
 
 export async function getFinances(): Promise<Finance[]> {
     try {
-        const res = await fetch(getApiUrl('/api/finances'), {
+        const res = await fetch(`${API_BASE_URL}/finances/`, {
             headers: await getHeaders(),
             cache: 'no-store',
         });
@@ -122,7 +121,7 @@ export async function getFinances(): Promise<Finance[]> {
 
 export async function getPersonTransactions(id: string): Promise<Finance[]> {
     try {
-        const res = await fetch(getApiUrl(`/api/persons/${id}/transactions`), {
+        const res = await fetch(`${API_BASE_URL}/persons/${id}/transactions/`, {
             headers: await getHeaders(),
             cache: 'no-store',
         });
@@ -176,32 +175,19 @@ export async function getSalaryPerson(id: string): Promise<Debt | null> {
 
 export async function getPersons(type: 'finance' | 'consumption' | 'salary'): Promise<Debt[]> {
     try {
-        console.log(`[getPersons] Fetching persons of type: ${type}`);
-        const path = `/api/persons/by-type/${type}`;
-        const url = getApiUrl(path);
-        console.log(`[getPersons] URL: ${url}`);
-        console.log(`[getPersons] Environment: ${typeof window === 'undefined' ? 'server' : 'client'}`);
-
-        const res = await fetch(url, {
+        const res = await fetch(`${API_BASE_URL}/persons/${type}/`, {
             headers: await getHeaders(),
             cache: 'no-store',
         });
 
-        console.log(`[getPersons] Response status: ${res.status}`);
-
         if (!res.ok) {
-            const errorText = await res.text();
-            console.error(`[getPersons] Failed to fetch ${type}:`, res.statusText, errorText);
             throw new Error(`Failed to fetch ${type}: ${res.statusText}`);
         }
 
         const data = await res.json();
-        console.log(`[getPersons] Received data:`, data);
-        console.log(`[getPersons] Results count:`, data.results?.length || 0);
-
         return data.results || [];
     } catch (error) {
-        console.error(`[getPersons] Error fetching ${type}:`, error);
+        console.error(`Error fetching ${type}:`, error);
         return [];
     }
 }
@@ -216,7 +202,7 @@ export interface CreatePersonPayload {
 
 export async function createPerson(payload: CreatePersonPayload): Promise<boolean> {
     try {
-        const res = await fetch(getApiUrl('/api/persons'), {
+        const res = await fetch(`${API_BASE_URL}/persons/`, {
             method: 'POST',
             headers: await getHeaders(),
             body: JSON.stringify(payload),
@@ -245,7 +231,7 @@ export interface CreateFinancePayload {
 
 export async function createFinance(payload: CreateFinancePayload): Promise<boolean> {
     try {
-        const res = await fetch(getApiUrl('/api/finances'), {
+        const res = await fetch(`${API_BASE_URL}/finances/`, {
             method: 'POST',
             headers: await getHeaders(),
             body: JSON.stringify(payload),
@@ -263,7 +249,6 @@ export async function createFinance(payload: CreateFinancePayload): Promise<bool
         return false;
     }
 }
-
 export interface CreateConsumptionPayload {
     name: string;
     cash: string;
@@ -272,7 +257,7 @@ export interface CreateConsumptionPayload {
 
 export async function createConsumption(payload: CreateConsumptionPayload): Promise<boolean> {
     try {
-        const res = await fetch(getApiUrl('/api/consumptions'), {
+        const res = await fetch(`${API_BASE_URL}/consumptions/`, {
             method: 'POST',
             headers: await getHeaders(),
             body: JSON.stringify(payload),
@@ -295,11 +280,12 @@ export interface CreateSalaryPayload {
     cash: string;
     person: number;
     name: string;
+    // type_finance: 'plus' | 'minus'; // Removed as it's not in the original payload
 }
 
 export async function createSalary(payload: CreateSalaryPayload): Promise<boolean> {
     try {
-        const res = await fetch(getApiUrl('/api/salaries'), {
+        const res = await fetch(`${API_BASE_URL}/salaries/`, {
             method: 'POST',
             headers: await getHeaders(),
             body: JSON.stringify(payload),
@@ -320,7 +306,7 @@ export async function createSalary(payload: CreateSalaryPayload): Promise<boolea
 
 export async function getConsumptions(): Promise<Finance[]> {
     try {
-        const res = await fetch(getApiUrl('/api/consumptions'), {
+        const res = await fetch(`${API_BASE_URL}/consumptions/`, {
             headers: await getHeaders(),
             cache: 'no-store',
         });
@@ -339,7 +325,7 @@ export async function getConsumptions(): Promise<Finance[]> {
 
 export async function getSalaries(): Promise<Finance[]> {
     try {
-        const res = await fetch(getApiUrl('/api/salaries'), {
+        const res = await fetch(`${API_BASE_URL}/salaries/`, {
             headers: await getHeaders(),
             cache: 'no-store',
         });
