@@ -4,7 +4,11 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
-        const res = await fetch('http://finance.smarthouse.website/api/v1/auth/login/', {
+        const targetUrl = 'http://finance.smarthouse.website/api/v1/auth/login/';
+        console.log('[Login Proxy] Forwarding request to:', targetUrl);
+        console.log('[Login Proxy] Request body:', body);
+
+        const res = await fetch(targetUrl, {
             method: 'POST',
             headers: {
                 'accept': 'application/json',
