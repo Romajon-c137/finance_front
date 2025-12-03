@@ -44,7 +44,7 @@ export interface LoginResponse {
 export async function login(username: string, password: string): Promise<LoginResponse | null> {
     try {
         // Use API proxy to avoid CORS and CSRF issues
-        const res = await fetch('/api/auth/login', {
+        const res = await fetch('/api/v1/auth/login/', {
             method: 'POST',
             headers: {
                 'accept': 'application/json',
