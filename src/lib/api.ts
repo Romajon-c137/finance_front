@@ -166,7 +166,7 @@ export async function getSalaryPerson(id: string): Promise<Debt | null> {
 
 export async function getPersons(type: 'finance' | 'consumption' | 'salary'): Promise<Debt[]> {
     try {
-        const res = await fetch(`/api/persons/${type}`, {
+        const res = await fetch(`/api/persons/by-type/${type}`, {
             headers: await getHeaders(),
             cache: 'no-store',
         });
