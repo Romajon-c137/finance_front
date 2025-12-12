@@ -44,7 +44,7 @@ export default function LoginPage() {
     return (
         <main className={styles.container}>
             <div className={styles.card}>
-                <h1 className={styles.title}>{isTokenMode ? 'Вход по токену' : 'Вход'}</h1>
+                <h1 className={styles.title}>{isTokenMode ? 'Говарю же токен не нужен деп' : 'Вход'}</h1>
 
                 <form onSubmit={handleSubmit} className={styles.form}>
                     {!isTokenMode ? (
@@ -77,16 +77,7 @@ export default function LoginPage() {
                         </>
                     ) : (
                         <div className={styles.inputGroup}>
-                            <label htmlFor="token" className={styles.label}>Токен</label>
-                            <input
-                                id="token"
-                                type="text"
-                                value={token}
-                                onChange={(e) => setToken(e.target.value)}
-                                className={styles.input}
-                                placeholder="Вставьте токен"
-                                required
-                            />
+                           ...
                         </div>
                     )}
 
@@ -118,7 +109,7 @@ export default function LoginPage() {
                             width: '100%'
                         }}
                     >
-                        {isTokenMode ? 'Войти по логину/паролю' : 'Войти по токену'}
+                        {isTokenMode ? 'Войти по логину/паролю' : 'Никому не сдалься ваш токен'}
                     </button>
                 </form>
             </div>

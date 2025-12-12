@@ -43,8 +43,8 @@ export interface LoginResponse {
 
 export async function login(username: string, password: string): Promise<LoginResponse | null> {
     try {
-        // Use API proxy to avoid CORS and CSRF issues
-        const res = await fetch('/api/auth/login', {
+        // Direct request to backend API
+        const res = await fetch(`${API_BASE_URL}/auth/login/`, {
             method: 'POST',
             headers: {
                 'accept': 'application/json',
