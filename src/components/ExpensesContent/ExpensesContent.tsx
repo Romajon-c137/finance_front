@@ -1,6 +1,6 @@
 
 "use client"
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Filter } from 'lucide-react';
@@ -8,16 +8,19 @@ import ExpenseCard from '@/components/ExpenseCard/ExpenseCard';
 import FloatingButton from '@/components/FloatingButton/FloatingButton';
 import SearchBar from '@/components/SearchBar/SearchBar';
 import CreateTransactionModal from '@/components/CreateTransactionModal/CreateTransactionModal';
-import { Debt, Finance, createPerson, createConsumption, getConsumptions } from '@/lib/api';
+import { Debt, Finance, createPerson, createConsumption, getConsumptions, getPersons, getAllTransactions } from '@/lib/api';
 import CreateEntityModal from '@/components/CreateEntityModal/CreateEntityModal';
 import FilterModal, { FilterPeriod } from '@/components/FilterModal/FilterModal';
 import BackButton from '@/components/BackButton/BackButton';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { usePagination } from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination/Pagination';
 
 interface ExpensesContentProps {
-    initialExpenses: Debt[];
+    initialExpenses?: Debt[];
 }
 
-export default function ExpensesContent({ initialExpenses }: ExpensesContentProps) {
+export default function ExpensesContent({ initialExpenses = [] }: ExpensesContentProps) {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -28,7 +31,6 @@ export default function ExpensesContent({ initialExpenses }: ExpensesContentProp
 
     // Data State
     const [allTransactions, setAllTransactions] = useState<Finance[]>([]);
-    const [calculatedExpenses, setCalculatedExpenses] = useState<Debt[]>(initialExpenses);
     const [isLoadingData, setIsLoadingData] = useState(true);
 
     // Create Expense Modal State
@@ -40,10 +42,17 @@ export default function ExpensesContent({ initialExpenses }: ExpensesContentProp
     const [activeExpenseId, setActiveExpenseId] = useState<number | null>(null);
     const [isTransactionSubmitting, setIsTransactionSubmitting] = useState(false);
 
+    // Pagination for expenses list
+    const fetchExpenses = useCallback((page: number) => getPersons('consumption', page), []);
+    const { data: expenses, currentPage, totalPages, loading: expensesLoading, goToPage, reload: reloadExpenses } = usePagination(
+        fetchExpenses,
+        [searchQuery]
+    );
+
     // Fetch all transactions for client-side filtering
     const fetchTransactions = async () => {
         setIsLoadingData(true);
-        const data = await getConsumptions();
+        const data = await getAllTransactions(getConsumptions);
         setAllTransactions(data);
         setIsLoadingData(false);
     };
@@ -52,9 +61,12 @@ export default function ExpensesContent({ initialExpenses }: ExpensesContentProp
         fetchTransactions();
     }, []);
 
-    // Recalculate totals when filter or transactions change
-    useEffect(() => {
-        if (isLoadingData) return;
+    // Calculate expenses based on filter
+    const calculatedExpenses = expenses.map(expense => {
+        // If "All Time", use the total_sum from the person object
+        if (activeFilter === 'all_time') {
+            return expense;
+        }
 
         const now = new Date();
         let start: Date | null = null;
@@ -72,37 +84,23 @@ export default function ExpensesContent({ initialExpenses }: ExpensesContentProp
             end.setHours(23, 59, 59);
         }
 
-        const newExpenses = initialExpenses.map(expense => {
-            // If "All Time", use the total_sum from the person object (or recalculate if we trust transactions more)
-            // The user requirement says: "if in this month ... sum only this operation".
-            // So we should recalculate from transactions for consistency.
+        const expenseTransactions = allTransactions.filter(t =>
+            (typeof t.person === 'object' ? t.person.id : t.person) === expense.id
+        );
 
-            if (activeFilter === 'all_time') {
-                return expense; // Use default total_sum
-            }
-
-            const expenseTransactions = allTransactions.filter(t =>
-                (typeof t.person === 'object' ? t.person.id : t.person) === expense.id
-            );
-
-            const filteredTransactions = expenseTransactions.filter(t => {
-                if (!start || !end) return true;
-                const date = new Date(t.create_dt || 0);
-                return date >= start && date <= end;
-            });
-
-            const sum = filteredTransactions.reduce((acc, t) => acc + parseFloat(t.cash), 0);
-
-            return {
-                ...expense,
-                total_sum: sum.toString()
-            };
+        const filteredTransactions = expenseTransactions.filter(t => {
+            if (!start || !end) return true;
+            const date = new Date(t.create_dt || 0);
+            return date >= start && date <= end;
         });
 
-        setCalculatedExpenses(newExpenses);
+        const sum = filteredTransactions.reduce((acc, t) => acc + parseFloat(t.cash), 0);
 
-    }, [activeFilter, customDateRange, allTransactions, initialExpenses, isLoadingData]);
-
+        return {
+            ...expense,
+            total_sum: sum.toString()
+        };
+    });
 
     const filteredExpenses = calculatedExpenses.filter(expense => {
         if (searchQuery && !expense.name.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -120,8 +118,9 @@ export default function ExpensesContent({ initialExpenses }: ExpensesContentProp
 
         if (success) {
             setIsCreateModalOpen(false);
-            router.refresh();
+            reloadExpenses();
             fetchTransactions(); // Refresh transactions
+            router.refresh();
         } else {
             alert('Ошибка при создании записи');
         }
@@ -146,8 +145,9 @@ export default function ExpensesContent({ initialExpenses }: ExpensesContentProp
         if (success) {
             setIsTransactionModalOpen(false);
             setActiveExpenseId(null);
-            router.refresh();
+            reloadExpenses();
             fetchTransactions(); // Refresh transactions to update sums
+            router.refresh();
         } else {
             alert('Ошибка при создании транзакции');
         }
@@ -160,8 +160,6 @@ export default function ExpensesContent({ initialExpenses }: ExpensesContentProp
             setCustomDateRange({ start, end });
         }
     };
-
-    // ...
 
     return (
         <main style={{ paddingBottom: '100px' }}>
@@ -201,12 +199,22 @@ export default function ExpensesContent({ initialExpenses }: ExpensesContentProp
                         onAdd={() => handleOpenTransactionModal(expense.id)}
                     />
                 ))}
-                {filteredExpenses.length === 0 && (
+                {filteredExpenses.length === 0 && !expensesLoading && !isLoadingData && (
                     <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '32px' }}>
                         Ничего не найдено
                     </div>
                 )}
             </div>
+
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={goToPage}
+                    loading={expensesLoading}
+                />
+            )}
 
             <FloatingButton onClick={() => setIsCreateModalOpen(true)} />
 

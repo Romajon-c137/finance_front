@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Filter } from 'lucide-react';
@@ -8,15 +8,18 @@ import FloatingButton from '@/components/FloatingButton/FloatingButton';
 import SearchBar from '@/components/SearchBar/SearchBar';
 import CreateEntityModal from '@/components/CreateEntityModal/CreateEntityModal';
 import CreateTransactionModal from '@/components/CreateTransactionModal/CreateTransactionModal';
-import { Debt, Finance, createPerson, createFinance, createSalary, getSalaries } from '@/lib/api';
+import { Debt, Finance, createPerson, createSalary, getSalaries, getPersons, getAllTransactions } from '@/lib/api';
 import FilterModal, { FilterPeriod } from '@/components/FilterModal/FilterModal';
 import BackButton from '@/components/BackButton/BackButton';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { usePagination } from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination/Pagination';
 
 interface SalariesContentProps {
-    initialSalaries: Debt[];
+    initialSalaries?: Debt[];
 }
 
-export default function SalariesContent({ initialSalaries }: SalariesContentProps) {
+export default function SalariesContent({ initialSalaries = [] }: SalariesContentProps) {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -27,7 +30,6 @@ export default function SalariesContent({ initialSalaries }: SalariesContentProp
 
     // Data State
     const [allTransactions, setAllTransactions] = useState<Finance[]>([]);
-    const [calculatedSalaries, setCalculatedSalaries] = useState<Debt[]>(initialSalaries);
     const [isLoadingData, setIsLoadingData] = useState(true);
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -38,10 +40,17 @@ export default function SalariesContent({ initialSalaries }: SalariesContentProp
     const [selectedPersonId, setSelectedPersonId] = useState<number | null>(null);
     const [isTransactionLoading, setIsTransactionLoading] = useState(false);
 
+    // Pagination for salaries list
+    const fetchSalaries = useCallback((page: number) => getPersons('salary', page), []);
+    const { data: salaries, currentPage, totalPages, loading: salariesLoading, goToPage, reload: reloadSalaries } = usePagination(
+        fetchSalaries,
+        [searchQuery]
+    );
+
     // Fetch all transactions for client-side filtering
     const fetchTransactions = async () => {
         setIsLoadingData(true);
-        const data = await getSalaries();
+        const data = await getAllTransactions(getSalaries);
         setAllTransactions(data);
         setIsLoadingData(false);
     };
@@ -50,9 +59,11 @@ export default function SalariesContent({ initialSalaries }: SalariesContentProp
         fetchTransactions();
     }, []);
 
-    // Recalculate totals when filter or transactions change
-    useEffect(() => {
-        if (isLoadingData) return;
+    // Calculate salaries based on filter
+    const calculatedSalaries = salaries.map(salary => {
+        if (activeFilter === 'all_time') {
+            return salary;
+        }
 
         const now = new Date();
         let start: Date | null = null;
@@ -70,32 +81,23 @@ export default function SalariesContent({ initialSalaries }: SalariesContentProp
             end.setHours(23, 59, 59);
         }
 
-        const newSalaries = initialSalaries.map(salary => {
-            if (activeFilter === 'all_time') {
-                return salary;
-            }
+        const salaryTransactions = allTransactions.filter(t =>
+            (typeof t.person === 'object' ? t.person.id : t.person) === salary.id
+        );
 
-            const salaryTransactions = allTransactions.filter(t =>
-                (typeof t.person === 'object' ? t.person.id : t.person) === salary.id
-            );
-
-            const filteredTransactions = salaryTransactions.filter(t => {
-                if (!start || !end) return true;
-                const date = new Date(t.create_dt || 0);
-                return date >= start && date <= end;
-            });
-
-            const sum = filteredTransactions.reduce((acc, t) => acc + parseFloat(t.cash), 0);
-
-            return {
-                ...salary,
-                total_sum: sum.toString()
-            };
+        const filteredTransactions = salaryTransactions.filter(t => {
+            if (!start || !end) return true;
+            const date = new Date(t.create_dt || 0);
+            return date >= start && date <= end;
         });
 
-        setCalculatedSalaries(newSalaries);
+        const sum = filteredTransactions.reduce((acc, t) => acc + parseFloat(t.cash), 0);
 
-    }, [activeFilter, customDateRange, allTransactions, initialSalaries, isLoadingData]);
+        return {
+            ...salary,
+            total_sum: sum.toString()
+        };
+    });
 
     const filteredSalaries = calculatedSalaries.filter(salary => {
         if (searchQuery && !salary.name.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -113,8 +115,9 @@ export default function SalariesContent({ initialSalaries }: SalariesContentProp
 
         if (success) {
             setIsCreateModalOpen(false);
-            router.refresh();
+            reloadSalaries();
             fetchTransactions();
+            router.refresh();
         } else {
             alert('Ошибка при создании записи');
         }
@@ -139,8 +142,9 @@ export default function SalariesContent({ initialSalaries }: SalariesContentProp
         if (success) {
             setIsTransactionModalOpen(false);
             setSelectedPersonId(null);
-            router.refresh();
+            reloadSalaries();
             fetchTransactions();
+            router.refresh();
         } else {
             alert('Ошибка при создании транзакции');
         }
@@ -153,8 +157,6 @@ export default function SalariesContent({ initialSalaries }: SalariesContentProp
             setCustomDateRange({ start, end });
         }
     };
-
-    // ...
 
     return (
         <main style={{ paddingBottom: '100px' }}>
@@ -191,12 +193,22 @@ export default function SalariesContent({ initialSalaries }: SalariesContentProp
                         />
                     </Link>
                 ))}
-                {filteredSalaries.length === 0 && (
+                {filteredSalaries.length === 0 && !salariesLoading && !isLoadingData && (
                     <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '32px' }}>
                         Ничего не найдено
                     </div>
                 )}
             </div>
+
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={goToPage}
+                    loading={salariesLoading}
+                />
+            )}
 
             <FloatingButton onClick={() => setIsCreateModalOpen(true)} />
 

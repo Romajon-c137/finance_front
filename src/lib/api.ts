@@ -79,11 +79,22 @@ const getHeaders = async () => {
         token = getTokenClient();
     }
 
+    console.log('[getHeaders] Token present:', !!token, 'Type:', typeof window === 'undefined' ? 'server' : 'client');
+
     return {
         'Authorization': token ? `Token ${token}` : '',
         'Content-Type': 'application/json',
+        'accept': 'application/json',
     };
 };
+
+// Pagination Support
+export interface PaginatedResponse<T> {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: T[];
+}
 
 export interface Debt {
     id: number;
@@ -102,9 +113,9 @@ export interface Finance {
     create_dt?: string; // Creation date from API
 }
 
-export async function getFinances(): Promise<Finance[]> {
+export async function getFinances(page: number = 1): Promise<PaginatedResponse<Finance>> {
     try {
-        const res = await fetch(`${API_BASE_URL}/finances/`, {
+        const res = await fetch(`${API_BASE_URL}/finances/?page=${page}`, {
             headers: await getHeaders(),
             cache: 'no-store',
         });
@@ -114,16 +125,16 @@ export async function getFinances(): Promise<Finance[]> {
         }
 
         const data = await res.json();
-        return data.results || [];
+        return data;
     } catch (error) {
         console.error('Error fetching finances:', error);
-        return [];
+        return { count: 0, next: null, previous: null, results: [] };
     }
 }
 
-export async function getPersonTransactions(id: string): Promise<Finance[]> {
+export async function getPersonTransactions(id: string, page: number = 1): Promise<PaginatedResponse<Finance>> {
     try {
-        const res = await fetch(`${API_BASE_URL}/persons/${id}/transactions/`, {
+        const res = await fetch(`${API_BASE_URL}/persons/${id}/transactions/?page=${page}`, {
             headers: await getHeaders(),
             cache: 'no-store',
         });
@@ -133,10 +144,10 @@ export async function getPersonTransactions(id: string): Promise<Finance[]> {
         }
 
         const data = await res.json();
-        return data.results || [];
+        return data;
     } catch (error) {
         console.error(`Error fetching transactions for person ${id}:`, error);
-        return [];
+        return { count: 0, next: null, previous: null, results: [] };
     }
 }
 
@@ -144,7 +155,7 @@ export async function getPerson(id: string): Promise<Debt | null> {
     try {
         // Direct endpoint /persons/finance/{id}/ does not exist (404).
         // We fetch the list of all persons and find the matching ID.
-        const all = await getPersons('finance');
+        const all = await getAllPersons('finance');
         const found = all.find(p => p.id === parseInt(id));
         return found || null;
     } catch (error) {
@@ -153,9 +164,40 @@ export async function getPerson(id: string): Promise<Debt | null> {
     }
 }
 
+// Helper functions to fetch all pages (for backward compatibility and filtering)
+export async function getAllPersons(type: 'finance' | 'consumption' | 'salary'): Promise<Debt[]> {
+    const allResults: Debt[] = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+        const response = await getPersons(type, page);
+        allResults.push(...response.results);
+        hasMore = response.next !== null;
+        page++;
+    }
+
+    return allResults;
+}
+
+export async function getAllTransactions(fetchFn: (page: number) => Promise<PaginatedResponse<Finance>>): Promise<Finance[]> {
+    const allResults: Finance[] = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+        const response = await fetchFn(page);
+        allResults.push(...response.results);
+        hasMore = response.next !== null;
+        page++;
+    }
+
+    return allResults;
+}
+
 export async function getExpense(id: string): Promise<Debt | null> {
     try {
-        const all = await getPersons('consumption');
+        const all = await getAllPersons('consumption');
         const found = all.find(p => p.id === parseInt(id));
         return found || null;
     } catch (error) {
@@ -166,7 +208,7 @@ export async function getExpense(id: string): Promise<Debt | null> {
 
 export async function getSalaryPerson(id: string): Promise<Debt | null> {
     try {
-        const all = await getPersons('salary');
+        const all = await getAllPersons('salary');
         const found = all.find(p => p.id === parseInt(id));
         return found || null;
     } catch (error) {
@@ -175,9 +217,9 @@ export async function getSalaryPerson(id: string): Promise<Debt | null> {
     }
 }
 
-export async function getPersons(type: 'finance' | 'consumption' | 'salary'): Promise<Debt[]> {
+export async function getPersons(type: 'finance' | 'consumption' | 'salary', page: number = 1): Promise<PaginatedResponse<Debt>> {
     try {
-        const res = await fetch(`${API_BASE_URL}/persons/${type}/`, {
+        const res = await fetch(`${API_BASE_URL}/persons/${type}/?page=${page}`, {
             headers: await getHeaders(),
             cache: 'no-store',
         });
@@ -187,10 +229,10 @@ export async function getPersons(type: 'finance' | 'consumption' | 'salary'): Pr
         }
 
         const data = await res.json();
-        return data.results || [];
+        return data;
     } catch (error) {
         console.error(`Error fetching ${type}:`, error);
-        return [];
+        return { count: 0, next: null, previous: null, results: [] };
     }
 }
 
@@ -306,9 +348,9 @@ export async function createSalary(payload: CreateSalaryPayload): Promise<boolea
     }
 }
 
-export async function getConsumptions(): Promise<Finance[]> {
+export async function getConsumptions(page: number = 1): Promise<PaginatedResponse<Finance>> {
     try {
-        const res = await fetch(`${API_BASE_URL}/consumptions/`, {
+        const res = await fetch(`${API_BASE_URL}/consumptions/?page=${page}`, {
             headers: await getHeaders(),
             cache: 'no-store',
         });
@@ -318,16 +360,16 @@ export async function getConsumptions(): Promise<Finance[]> {
         }
 
         const data = await res.json();
-        return data.results || [];
+        return data;
     } catch (error) {
         console.error('Error fetching consumptions:', error);
-        return [];
+        return { count: 0, next: null, previous: null, results: [] };
     }
 }
 
-export async function getSalaries(): Promise<Finance[]> {
+export async function getSalaries(page: number = 1): Promise<PaginatedResponse<Finance>> {
     try {
-        const res = await fetch(`${API_BASE_URL}/salaries/`, {
+        const res = await fetch(`${API_BASE_URL}/salaries/?page=${page}`, {
             headers: await getHeaders(),
             cache: 'no-store',
         });
@@ -337,9 +379,9 @@ export async function getSalaries(): Promise<Finance[]> {
         }
 
         const data = await res.json();
-        return data.results || [];
+        return data;
     } catch (error) {
         console.error('Error fetching salaries:', error);
-        return [];
+        return { count: 0, next: null, previous: null, results: [] };
     }
 }

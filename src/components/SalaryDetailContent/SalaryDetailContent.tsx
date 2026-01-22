@@ -1,12 +1,15 @@
 "use client"
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import DebtCard from '@/components/DebtCard/DebtCard';
 import TransactionItem from '@/components/TransactionItem/TransactionItem';
 import CreateTransactionModal from '@/components/CreateTransactionModal/CreateTransactionModal';
-import { Debt, Finance, createFinance, createSalary, getSalaryPerson, getPersonTransactions } from '@/lib/api';
+import { Debt, Finance, createSalary, getSalaryPerson, getPersonTransactions } from '@/lib/api';
 import styles from './SalaryDetailContent.module.css';
 import BackButton from '@/components/BackButton/BackButton';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { usePagination } from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination/Pagination';
 
 interface SalaryDetailContentProps {
     personId: string;
@@ -18,40 +21,38 @@ export default function SalaryDetailContent({ personId }: SalaryDetailContentPro
     const initialName = searchParams.get('name');
 
     const [person, setPerson] = useState<Debt | null>(null);
-    const [transactions, setTransactions] = useState<Finance[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingPerson, setIsLoadingPerson] = useState(true);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const fetchData = async () => {
-        setIsLoading(true);
-        try {
-            const personData = await getSalaryPerson(personId);
-            const transactionsData = await getPersonTransactions(personId);
+    // Pagination for transactions
+    const fetchTransactions = useCallback((page: number) => getPersonTransactions(personId, page), [personId]);
+    const { data: transactions, currentPage, totalPages, loading, goToPage, reload } = usePagination(
+        fetchTransactions,
+        []
+    );
 
-            // Sort by date descending (newest first), use ID as tie-breaker
-            transactionsData.sort((a, b) => {
-                const dateA = new Date(a.create_dt || 0).getTime();
-                const dateB = new Date(b.create_dt || 0).getTime();
-                if (dateB !== dateA) {
-                    return dateB - dateA;
-                }
-                return b.id - a.id;
-            });
-
-            setPerson(personData);
-            setTransactions(transactionsData);
-        } catch (error) {
-            console.error('Error fetching data:', error);
-        } finally {
-            setIsLoading(false);
-        }
+    const fetchPerson = async () => {
+        setIsLoadingPerson(true);
+        const personData = await getSalaryPerson(personId);
+        setPerson(personData);
+        setIsLoadingPerson(false);
     };
 
     useEffect(() => {
-        fetchData();
+        fetchPerson();
     }, [personId]);
+
+    // Sort transactions by date
+    const sortedTransactions = [...transactions].sort((a, b) => {
+        const dateA = new Date(a.create_dt || 0).getTime();
+        const dateB = new Date(b.create_dt || 0).getTime();
+        if (dateB !== dateA) {
+            return dateB - dateA;
+        }
+        return b.id - a.id;
+    });
 
     const handleCreateTransaction = async (data: { amount: string; comment: string }) => {
         if (!person) return;
@@ -68,7 +69,8 @@ export default function SalaryDetailContent({ personId }: SalaryDetailContentPro
 
         if (success) {
             setIsModalOpen(false);
-            await fetchData();
+            reload(); // Reload transactions
+            fetchPerson(); // Refresh person to update total sum
             router.refresh();
         } else {
             alert('Ошибка при создании записи');
@@ -76,7 +78,7 @@ export default function SalaryDetailContent({ personId }: SalaryDetailContentPro
         setIsSubmitting(false);
     };
 
-    if (isLoading) {
+    if (isLoadingPerson) {
         return <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>Загрузка...</div>;
     }
 
@@ -96,7 +98,7 @@ export default function SalaryDetailContent({ personId }: SalaryDetailContentPro
             />
 
             <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {transactions.map((item) => (
+                {sortedTransactions.map((item) => (
                     <TransactionItem
                         key={item.id}
                         name={item.name}
@@ -106,12 +108,22 @@ export default function SalaryDetailContent({ personId }: SalaryDetailContentPro
                         showSign={false}
                     />
                 ))}
-                {transactions.length === 0 && (
+                {sortedTransactions.length === 0 && !loading && (
                     <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '32px' }}>
                         История пуста
                     </div>
                 )}
             </div>
+
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={goToPage}
+                    loading={loading}
+                />
+            )}
 
             <div className={styles.actionContainer}>
                 <button

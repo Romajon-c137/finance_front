@@ -1,5 +1,5 @@
 "use client"
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import DebtCard from '@/components/DebtCard/DebtCard';
@@ -7,14 +7,16 @@ import FloatingButton from '@/components/FloatingButton/FloatingButton';
 import SearchBar from '@/components/SearchBar/SearchBar';
 import CreateEntityModal from '@/components/CreateEntityModal/CreateEntityModal';
 import CreateTransactionModal from '@/components/CreateTransactionModal/CreateTransactionModal';
-import { Debt, createPerson, createFinance } from '@/lib/api';
+import { Debt, createPerson, createFinance, getPersons } from '@/lib/api';
 import BackButton from '@/components/BackButton/BackButton';
+import { usePagination } from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination/Pagination';
 
 interface DebtsContentProps {
-    initialDebts: Debt[];
+    initialDebts?: Debt[];
 }
 
-export default function DebtsContent({ initialDebts }: DebtsContentProps) {
+export default function DebtsContent({ initialDebts = [] }: DebtsContentProps) {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -26,7 +28,14 @@ export default function DebtsContent({ initialDebts }: DebtsContentProps) {
     const [selectedPersonId, setSelectedPersonId] = useState<number | null>(null);
     const [isTransactionLoading, setIsTransactionLoading] = useState(false);
 
-    const filteredDebts = initialDebts.filter(debt => {
+    // Pagination hook
+    const fetchDebts = useCallback((page: number) => getPersons('finance', page), []);
+    const { data: debts, currentPage, totalPages, loading, goToPage, reload } = usePagination(
+        fetchDebts,
+        [searchQuery]
+    );
+
+    const filteredDebts = debts.filter(debt => {
         if (searchQuery && !debt.name.toLowerCase().includes(searchQuery.toLowerCase())) {
             return false;
         }
@@ -42,7 +51,8 @@ export default function DebtsContent({ initialDebts }: DebtsContentProps) {
 
         if (success) {
             setIsCreateModalOpen(false);
-            router.refresh(); // Refresh data
+            reload(); // Reload current page
+            router.refresh();
         } else {
             alert('Ошибка при создании записи');
         }
@@ -70,6 +80,7 @@ export default function DebtsContent({ initialDebts }: DebtsContentProps) {
         if (success) {
             setIsTransactionModalOpen(false);
             setSelectedPersonId(null);
+            reload(); // Reload current page
             router.refresh();
         } else {
             alert('Ошибка при создании транзакции');
@@ -105,13 +116,22 @@ export default function DebtsContent({ initialDebts }: DebtsContentProps) {
                     </Link>
                 ))}
 
-                {filteredDebts.length === 0 && (
+                {filteredDebts.length === 0 && !loading && (
                     <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '32px' }}>
                         Ничего не найдено
                     </div>
                 )}
             </div>
 
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={goToPage}
+                    loading={loading}
+                />
+            )}
 
             <FloatingButton onClick={() => setIsCreateModalOpen(true)} />
 
