@@ -1,17 +1,17 @@
-const API_BASE_URL = 'http://finance.smarthouse.website/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://finance.smarthouse.website/api/v1';
+
+import Cookies from 'js-cookie';
 
 // Token Management
 // Client-side cookie management
 export const setTokenClient = (token: string) => {
     if (typeof window !== 'undefined') {
-        const Cookies = require('js-cookie');
         Cookies.set('auth_token', token, { expires: 7 }); // 7 days
     }
 };
 
 export const getTokenClient = (): string | null => {
     if (typeof window !== 'undefined') {
-        const Cookies = require('js-cookie');
         return Cookies.get('auth_token') || null;
     }
     return null;
@@ -19,7 +19,6 @@ export const getTokenClient = (): string | null => {
 
 export const removeTokenClient = () => {
     if (typeof window !== 'undefined') {
-        const Cookies = require('js-cookie');
         Cookies.remove('auth_token');
     }
 };

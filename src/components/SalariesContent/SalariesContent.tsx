@@ -11,9 +11,11 @@ import CreateTransactionModal from '@/components/CreateTransactionModal/CreateTr
 import { Debt, Finance, createPerson, createSalary, getSalaries, getPersons, getAllTransactions } from '@/lib/api';
 import FilterModal, { FilterPeriod } from '@/components/FilterModal/FilterModal';
 import BackButton from '@/components/BackButton/BackButton';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { usePagination } from '@/hooks/usePagination';
 import Pagination from '@/components/Pagination/Pagination';
+import { useToast } from '@/components/Toast/ToastProvider';
+import { useDebounce } from '@/hooks/useDebounce';
+import LoadingSkeleton from '@/components/LoadingSkeleton/LoadingSkeleton';
 
 interface SalariesContentProps {
     initialSalaries?: Debt[];
@@ -21,7 +23,9 @@ interface SalariesContentProps {
 
 export default function SalariesContent({ initialSalaries = [] }: SalariesContentProps) {
     const router = useRouter();
+    const toast = useToast();
     const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
     // Filter State
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -44,7 +48,7 @@ export default function SalariesContent({ initialSalaries = [] }: SalariesConten
     const fetchSalaries = useCallback((page: number) => getPersons('salary', page), []);
     const { data: salaries, currentPage, totalPages, loading: salariesLoading, goToPage, reload: reloadSalaries } = usePagination(
         fetchSalaries,
-        [searchQuery]
+        [debouncedSearchQuery]
     );
 
     // Fetch all transactions for client-side filtering
@@ -100,7 +104,7 @@ export default function SalariesContent({ initialSalaries = [] }: SalariesConten
     });
 
     const filteredSalaries = calculatedSalaries.filter(salary => {
-        if (searchQuery && !salary.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        if (debouncedSearchQuery && !salary.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) {
             return false;
         }
         return true;
@@ -115,11 +119,12 @@ export default function SalariesContent({ initialSalaries = [] }: SalariesConten
 
         if (success) {
             setIsCreateModalOpen(false);
+            toast.success('Сотрудник успешно создан');
             reloadSalaries();
             fetchTransactions();
             router.refresh();
         } else {
-            alert('Ошибка при создании записи');
+            toast.error('Ошибка при создании записи');
         }
         setIsCreating(false);
     };
@@ -142,11 +147,12 @@ export default function SalariesContent({ initialSalaries = [] }: SalariesConten
         if (success) {
             setIsTransactionModalOpen(false);
             setSelectedPersonId(null);
+            toast.success('Зарплата успешно выплачена');
             reloadSalaries();
             fetchTransactions();
             router.refresh();
         } else {
-            alert('Ошибка при создании транзакции');
+            toast.error('Ошибка при создании транзакции');
         }
         setIsTransactionLoading(false);
     };
@@ -183,22 +189,28 @@ export default function SalariesContent({ initialSalaries = [] }: SalariesConten
                 </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-                {filteredSalaries.map((salary) => (
-                    <Link key={salary.id} href={`/salaries/${salary.id}`} style={{ width: '100%' }}>
-                        <SalaryCard
-                            name={salary.name}
-                            amount={parseFloat(salary.total_sum)}
-                            onAdd={() => handleCardAdd(salary.id)}
-                        />
-                    </Link>
-                ))}
-                {filteredSalaries.length === 0 && !salariesLoading && !isLoadingData && (
-                    <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '32px' }}>
-                        Ничего не найдено
-                    </div>
-                )}
-            </div>
+            {(salariesLoading || isLoadingData) ? (
+                <div style={{ marginTop: '16px' }}>
+                    <LoadingSkeleton count={5} />
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+                    {filteredSalaries.map((salary) => (
+                        <Link key={salary.id} href={`/salaries/${salary.id}`} style={{ width: '100%' }}>
+                            <SalaryCard
+                                name={salary.name}
+                                amount={parseFloat(salary.total_sum)}
+                                onAdd={() => handleCardAdd(salary.id)}
+                            />
+                        </Link>
+                    ))}
+                    {filteredSalaries.length === 0 && !salariesLoading && !isLoadingData && (
+                        <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '32px' }}>
+                            Ничего не найдено
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Pagination controls */}
             {totalPages > 1 && (

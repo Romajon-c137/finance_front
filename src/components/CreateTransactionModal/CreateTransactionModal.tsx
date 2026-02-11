@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import styles from './CreateTransactionModal.module.css';
+import { validateAmount, validateComment } from '@/lib/validation';
 
 interface CreateTransactionModalProps {
     isOpen: boolean;
@@ -20,12 +21,16 @@ const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
 }) => {
     const [amount, setAmount] = useState('');
     const [comment, setComment] = useState('');
+    const [amountError, setAmountError] = useState<string>('');
+    const [commentError, setCommentError] = useState<string>('');
 
     // Reset fields when modal opens
     useEffect(() => {
         if (isOpen) {
             setAmount('');
             setComment('');
+            setAmountError('');
+            setCommentError('');
         }
     }, [isOpen]);
 
@@ -35,19 +40,43 @@ const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
         const value = e.target.value.replace(/\D/g, '');
         if (value === '') {
             setAmount('');
+            if (amountError) setAmountError('');
             return;
         }
         const formatted = parseInt(value).toLocaleString('ru-RU');
         setAmount(formatted);
+        if (amountError) setAmountError('');
+    };
+
+    const handleCommentChange = (value: string) => {
+        setComment(value);
+        if (commentError) setCommentError('');
     };
 
     const handleSubmit = () => {
-        if (!amount) return;
-        // Remove spaces before submitting
+        // Remove spaces for validation
         const cleanAmount = amount.replace(/\s/g, '');
-        // Default comment to '-' if empty
-        const finalComment = comment.trim() || '-';
-        onSubmit({ amount: cleanAmount, comment: finalComment });
+
+        const amountValidation = validateAmount(cleanAmount);
+        const commentValidation = validateComment(comment);
+
+        let hasError = false;
+
+        if (!amountValidation.isValid) {
+            setAmountError(amountValidation.error || '');
+            hasError = true;
+        }
+
+        if (!commentValidation.isValid) {
+            setCommentError(commentValidation.error || '');
+            hasError = true;
+        }
+
+        if (hasError) return;
+
+        setAmountError('');
+        setCommentError('');
+        onSubmit({ amount: cleanAmount, comment: comment.trim() });
     };
 
     const title = type === 'plus' ? 'Принять' : 'Отдать';
@@ -62,28 +91,31 @@ const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                     <input
                         type="text"
                         inputMode="numeric"
-                        className={styles.input}
+                        className={`${styles.input} ${amountError ? styles.inputError : ''}`}
                         placeholder="0"
                         value={amount}
                         onChange={handleAmountChange}
                     />
+                    {amountError && <span className={styles.errorText}>{amountError}</span>}
                 </div>
 
                 <div className={styles.formGroup}>
                     <label className={styles.label}>Комментарий</label>
                     <input
                         type="text"
-                        className={styles.input}
+                        className={`${styles.input} ${commentError ? styles.inputError : ''}`}
                         placeholder="Введите комментарий"
                         value={comment}
-                        onChange={(e) => setComment(e.target.value)}
+                        onChange={(e) => handleCommentChange(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                     />
+                    {commentError && <span className={styles.errorText}>{commentError}</span>}
                 </div>
 
                 <button
                     className={styles.submitButton}
                     onClick={handleSubmit}
-                    disabled={isLoading || !amount}
+                    disabled={isLoading}
                 >
                     {isLoading ? 'Сохранение...' : 'Подтвердить'}
                 </button>

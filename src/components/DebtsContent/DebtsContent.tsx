@@ -11,6 +11,9 @@ import { Debt, createPerson, createFinance, getPersons } from '@/lib/api';
 import BackButton from '@/components/BackButton/BackButton';
 import { usePagination } from '@/hooks/usePagination';
 import Pagination from '@/components/Pagination/Pagination';
+import { useToast } from '@/components/Toast/ToastProvider';
+import { useDebounce } from '@/hooks/useDebounce';
+import LoadingSkeleton from '@/components/LoadingSkeleton/LoadingSkeleton';
 
 interface DebtsContentProps {
     initialDebts?: Debt[];
@@ -18,7 +21,9 @@ interface DebtsContentProps {
 
 export default function DebtsContent({ initialDebts = [] }: DebtsContentProps) {
     const router = useRouter();
+    const toast = useToast();
     const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
 
@@ -32,11 +37,11 @@ export default function DebtsContent({ initialDebts = [] }: DebtsContentProps) {
     const fetchDebts = useCallback((page: number) => getPersons('finance', page), []);
     const { data: debts, currentPage, totalPages, loading, goToPage, reload } = usePagination(
         fetchDebts,
-        [searchQuery]
+        [debouncedSearchQuery]
     );
 
     const filteredDebts = debts.filter(debt => {
-        if (searchQuery && !debt.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        if (debouncedSearchQuery && !debt.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) {
             return false;
         }
         return true;
@@ -51,10 +56,11 @@ export default function DebtsContent({ initialDebts = [] }: DebtsContentProps) {
 
         if (success) {
             setIsCreateModalOpen(false);
+            toast.success('Долг успешно создан');
             reload(); // Reload current page
             router.refresh();
         } else {
-            alert('Ошибка при создании записи');
+            toast.error('Ошибка при создании записи');
         }
         setIsCreating(false);
     };
@@ -80,10 +86,11 @@ export default function DebtsContent({ initialDebts = [] }: DebtsContentProps) {
         if (success) {
             setIsTransactionModalOpen(false);
             setSelectedPersonId(null);
+            toast.success('Транзакция успешно создана');
             reload(); // Reload current page
             router.refresh();
         } else {
-            alert('Ошибка при создании транзакции');
+            toast.error('Ошибка при создании транзакции');
         }
         setIsTransactionLoading(false);
     };
@@ -97,31 +104,37 @@ export default function DebtsContent({ initialDebts = [] }: DebtsContentProps) {
                 </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-                {filteredDebts.map((debt) => (
-                    <Link
-                        key={debt.id}
-                        href={{
-                            pathname: `/debts/${debt.id}`,
-                            query: { name: debt.name }
-                        }}
-                        style={{ width: '100%' }}
-                    >
-                        <DebtCard
-                            name={debt.name}
-                            amount={parseFloat(debt.total_sum)}
-                            onAccept={() => openTransactionModal(debt.id, 'plus')}
-                            onGive={() => openTransactionModal(debt.id, 'minus')}
-                        />
-                    </Link>
-                ))}
+            {loading ? (
+                <div style={{ marginTop: '16px' }}>
+                    <LoadingSkeleton count={5} />
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+                    {filteredDebts.map((debt) => (
+                        <Link
+                            key={debt.id}
+                            href={{
+                                pathname: `/debts/${debt.id}`,
+                                query: { name: debt.name }
+                            }}
+                            style={{ width: '100%' }}
+                        >
+                            <DebtCard
+                                name={debt.name}
+                                amount={parseFloat(debt.total_sum)}
+                                onAccept={() => openTransactionModal(debt.id, 'plus')}
+                                onGive={() => openTransactionModal(debt.id, 'minus')}
+                            />
+                        </Link>
+                    ))}
 
-                {filteredDebts.length === 0 && !loading && (
-                    <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '32px' }}>
-                        Ничего не найдено
-                    </div>
-                )}
-            </div>
+                    {filteredDebts.length === 0 && !loading && (
+                        <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '32px' }}>
+                            Ничего не найдено
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Pagination controls */}
             {totalPages > 1 && (

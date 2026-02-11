@@ -12,9 +12,11 @@ import { Debt, Finance, createPerson, createConsumption, getConsumptions, getPer
 import CreateEntityModal from '@/components/CreateEntityModal/CreateEntityModal';
 import FilterModal, { FilterPeriod } from '@/components/FilterModal/FilterModal';
 import BackButton from '@/components/BackButton/BackButton';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { usePagination } from '@/hooks/usePagination';
 import Pagination from '@/components/Pagination/Pagination';
+import { useToast } from '@/components/Toast/ToastProvider';
+import { useDebounce } from '@/hooks/useDebounce';
+import LoadingSkeleton from '@/components/LoadingSkeleton/LoadingSkeleton';
 
 interface ExpensesContentProps {
     initialExpenses?: Debt[];
@@ -22,7 +24,9 @@ interface ExpensesContentProps {
 
 export default function ExpensesContent({ initialExpenses = [] }: ExpensesContentProps) {
     const router = useRouter();
+    const toast = useToast();
     const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
     // Filter State
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -46,7 +50,7 @@ export default function ExpensesContent({ initialExpenses = [] }: ExpensesConten
     const fetchExpenses = useCallback((page: number) => getPersons('consumption', page), []);
     const { data: expenses, currentPage, totalPages, loading: expensesLoading, goToPage, reload: reloadExpenses } = usePagination(
         fetchExpenses,
-        [searchQuery]
+        [debouncedSearchQuery]
     );
 
     // Fetch all transactions for client-side filtering
@@ -103,7 +107,7 @@ export default function ExpensesContent({ initialExpenses = [] }: ExpensesConten
     });
 
     const filteredExpenses = calculatedExpenses.filter(expense => {
-        if (searchQuery && !expense.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        if (debouncedSearchQuery && !expense.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) {
             return false;
         }
         return true;
@@ -118,11 +122,12 @@ export default function ExpensesContent({ initialExpenses = [] }: ExpensesConten
 
         if (success) {
             setIsCreateModalOpen(false);
+            toast.success('Расход успешно создан');
             reloadExpenses();
             fetchTransactions(); // Refresh transactions
             router.refresh();
         } else {
-            alert('Ошибка при создании записи');
+            toast.error('Ошибка при создании записи');
         }
         setIsCreating(false);
     };
@@ -145,11 +150,12 @@ export default function ExpensesContent({ initialExpenses = [] }: ExpensesConten
         if (success) {
             setIsTransactionModalOpen(false);
             setActiveExpenseId(null);
+            toast.success('Транзакция успешно создана');
             reloadExpenses();
             fetchTransactions(); // Refresh transactions to update sums
             router.refresh();
         } else {
-            alert('Ошибка при создании транзакции');
+            toast.error('Ошибка при создании транзакции');
         }
         setIsTransactionSubmitting(false);
     };
@@ -186,25 +192,31 @@ export default function ExpensesContent({ initialExpenses = [] }: ExpensesConten
                 </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-                {filteredExpenses.map((expense) => (
-                    <ExpenseCard
-                        key={expense.id}
-                        title={expense.name}
-                        amount={parseFloat(expense.total_sum)}
-                        href={{
-                            pathname: `/expenses/${expense.id}`,
-                            query: { name: expense.name }
-                        }}
-                        onAdd={() => handleOpenTransactionModal(expense.id)}
-                    />
-                ))}
-                {filteredExpenses.length === 0 && !expensesLoading && !isLoadingData && (
-                    <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '32px' }}>
-                        Ничего не найдено
-                    </div>
-                )}
-            </div>
+            {(expensesLoading || isLoadingData) ? (
+                <div style={{ marginTop: '16px' }}>
+                    <LoadingSkeleton count={5} />
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+                    {filteredExpenses.map((expense) => (
+                        <ExpenseCard
+                            key={expense.id}
+                            title={expense.name}
+                            amount={parseFloat(expense.total_sum)}
+                            href={{
+                                pathname: `/expenses/${expense.id}`,
+                                query: { name: expense.name }
+                            }}
+                            onAdd={() => handleOpenTransactionModal(expense.id)}
+                        />
+                    ))}
+                    {filteredExpenses.length === 0 && !expensesLoading && !isLoadingData && (
+                        <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '32px' }}>
+                            Ничего не найдено
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Pagination controls */}
             {totalPages > 1 && (

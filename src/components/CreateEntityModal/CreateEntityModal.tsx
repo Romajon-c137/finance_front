@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import styles from './CreateEntityModal.module.css';
+import { validateName } from '@/lib/validation';
 
 interface CreateEntityModalProps {
     isOpen: boolean;
@@ -21,13 +22,28 @@ const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
     placeholder = 'Введите имя'
 }) => {
     const [name, setName] = useState('');
+    const [error, setError] = useState<string>('');
 
     if (!isOpen) return null;
 
     const handleSubmit = () => {
-        if (!name) return;
+        const validation = validateName(name);
+
+        if (!validation.isValid) {
+            setError(validation.error || '');
+            return;
+        }
+
+        setError('');
         onSubmit(name);
         setName(''); // Reset after submit
+    };
+
+    const handleChange = (value: string) => {
+        setName(value);
+        if (error) {
+            setError(''); // Clear error on change
+        }
     };
 
     return (
@@ -39,17 +55,19 @@ const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
                     <label className={styles.label}>Название</label>
                     <input
                         type="text"
-                        className={styles.input}
+                        className={`${styles.input} ${error ? styles.inputError : ''}`}
                         placeholder={placeholder}
                         value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={(e) => handleChange(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                     />
+                    {error && <span className={styles.errorText}>{error}</span>}
                 </div>
 
                 <button
                     className={styles.submitButton}
                     onClick={handleSubmit}
-                    disabled={isLoading || !name}
+                    disabled={isLoading}
                 >
                     {isLoading ? 'Сохранение...' : 'Создать'}
                 </button>

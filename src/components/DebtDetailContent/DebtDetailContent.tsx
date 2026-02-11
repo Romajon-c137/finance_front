@@ -8,7 +8,6 @@ import ActionButtons from '@/components/ActionButtons/ActionButtons';
 import CreateTransactionModal from '@/components/CreateTransactionModal/CreateTransactionModal';
 import { Debt, Finance, createFinance, getPerson, getPersonTransactions } from '@/lib/api';
 import BackButton from '@/components/BackButton/BackButton';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { usePagination } from '@/hooks/usePagination';
 import Pagination from '@/components/Pagination/Pagination';
 

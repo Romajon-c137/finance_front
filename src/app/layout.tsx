@@ -14,6 +14,8 @@ export const metadata: Metadata = {
 };
 
 import MiniProfile from "@/components/MiniProfile/MiniProfile";
+import { ToastProvider } from "@/components/Toast/ToastProvider";
+import ErrorBoundary from "@/components/ErrorBoundary/ErrorBoundary";
 
 // ...
 
@@ -25,8 +27,12 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className={montserrat.className}>
-        <MiniProfile />
-        {children}
+        <ErrorBoundary>
+          <ToastProvider>
+            <MiniProfile />
+            {children}
+          </ToastProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

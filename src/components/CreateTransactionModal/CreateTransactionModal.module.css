@@ -58,6 +58,16 @@
     border-color: #3b82f6;
 }
 
+.inputError {
+    border-color: #ef4444 !important;
+}
+
+.errorText {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 4px;
+}
+
 .submitButton {
     margin-top: 12px;
     padding: 16px;
