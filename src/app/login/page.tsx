@@ -2,15 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { login, setTokenClient } from '@/lib/api';
+import { setTokenClient } from '@/lib/api';
 import styles from './page.module.css';
 
 export default function LoginPage() {
     const router = useRouter();
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
     const [token, setToken] = useState('');
-    const [isTokenMode, setIsTokenMode] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -19,24 +16,11 @@ export default function LoginPage() {
         setError('');
         setIsLoading(true);
 
-        if (isTokenMode) {
-            if (token.trim()) {
-                setTokenClient(token.trim());
-                router.push('/');
-            } else {
-                setError('Введите токен');
-            }
-            setIsLoading(false);
-            return;
-        }
-
-        const response = await login(username, password);
-
-        if (response && response.token) {
-            setTokenClient(response.token);
+        if (token.trim()) {
+            setTokenClient(token.trim());
             router.push('/');
         } else {
-            setError('Неверный логин или пароль');
+            setError('Введите токен');
         }
         setIsLoading(false);
     };
@@ -44,42 +28,21 @@ export default function LoginPage() {
     return (
         <main className={styles.container}>
             <div className={styles.card}>
-                <h1 className={styles.title}>{isTokenMode ? 'Говарю же токен не нужен деп' : 'Вход'}</h1>
+                <h1 className={styles.title}>Вход по токену</h1>
 
                 <form onSubmit={handleSubmit} className={styles.form}>
-                    {!isTokenMode ? (
-                        <>
-                            <div className={styles.inputGroup}>
-                                <label htmlFor="username" className={styles.label}>Логин</label>
-                                <input
-                                    id="username"
-                                    type="text"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                    className={styles.input}
-                                    placeholder="Введите логин"
-                                    required
-                                />
-                            </div>
-
-                            <div className={styles.inputGroup}>
-                                <label htmlFor="password" className={styles.label}>Пароль</label>
-                                <input
-                                    id="password"
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className={styles.input}
-                                    placeholder="Введите пароль"
-                                    required
-                                />
-                            </div>
-                        </>
-                    ) : (
-                        <div className={styles.inputGroup}>
-                           ...
-                        </div>
-                    )}
+                    <div className={styles.inputGroup}>
+                        <label htmlFor="token" className={styles.label}>Токен авторизации</label>
+                        <input
+                            id="token"
+                            type="text"
+                            value={token}
+                            onChange={(e) => setToken(e.target.value)}
+                            className={styles.input}
+                            placeholder="Введите токен"
+                            required
+                        />
+                    </div>
 
                     {error && <div className={styles.error}>{error}</div>}
 
@@ -89,27 +52,6 @@ export default function LoginPage() {
                         disabled={isLoading}
                     >
                         {isLoading ? 'Вход...' : 'Войти'}
-                    </button>
-
-                    <button
-                        type="button"
-                        className={styles.linkButton}
-                        onClick={() => {
-                            setIsTokenMode(!isTokenMode);
-                            setError('');
-                        }}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#666',
-                            marginTop: '1rem',
-                            cursor: 'pointer',
-                            fontSize: '0.9rem',
-                            textDecoration: 'underline',
-                            width: '100%'
-                        }}
-                    >
-                        {isTokenMode ? 'Войти по логину/паролю' : 'Никому не сдалься ваш токен'}
                     </button>
                 </form>
             </div>
